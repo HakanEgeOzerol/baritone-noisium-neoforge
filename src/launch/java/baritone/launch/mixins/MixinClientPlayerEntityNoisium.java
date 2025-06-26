@@ -21,25 +21,21 @@ import baritone.api.BaritoneAPI;
 import baritone.api.IBaritone;
 import baritone.api.event.events.PlayerUpdateEvent;
 import baritone.api.event.events.type.EventState;
-import baritone.behavior.LookBehavior;
 import net.minecraft.client.player.LocalPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Noisium-compatible version of MixinClientPlayerEntity
- * Uses minimal, safe injection points that don't conflict with Noisium optimizations
- * 
+ * Simplified to avoid conflicts with Noisium transformations
  * @author Brady
- * @since 8/1/2018
+ * @since 7/31/2018
  */
 @Mixin(LocalPlayer.class)
 public class MixinClientPlayerEntityNoisium {
 
-    // Use HEAD injection to avoid conflicts with Noisium's tick modifications
     @Inject(
             method = "tick",
             at = @At(
@@ -53,34 +49,5 @@ public class MixinClientPlayerEntityNoisium {
         if (baritone != null) {
             baritone.getGameEventHandler().onPlayerUpdate(new PlayerUpdateEvent(EventState.PRE));
         }
-    }
-
-    // NOTE: Most redirects removed for maximum Noisium compatibility
-    // Only keeping essential functionality for core Baritone features
-
-    @Inject(
-            method = "rideTick",
-            at = @At("HEAD")
-    )
-    private void updateRidden(CallbackInfo cb) {
-        IBaritone baritone = BaritoneAPI.getProvider().getBaritoneForPlayer((LocalPlayer) (Object) this);
-        if (baritone != null) {
-            ((LookBehavior) baritone.getLookBehavior()).pig();
-        }
-    }
-
-    @Redirect(
-            method = "aiStep",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/player/LocalPlayer;tryToStartFallFlying()Z"
-            )
-    )
-    private boolean tryToStartFallFlying(final LocalPlayer instance) {
-        IBaritone baritone = BaritoneAPI.getProvider().getBaritoneForPlayer(instance);
-        if (baritone != null && baritone.getPathingBehavior().isPathing()) {
-            return false;
-        }
-        return instance.tryToStartFallFlying();
     }
 } 

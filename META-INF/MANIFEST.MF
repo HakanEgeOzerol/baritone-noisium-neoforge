@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+MixinConfigs: mixins.baritone.noisium.json
+MixinConnector: baritone.launch.BaritoneNoisiumMixinConnector
+Implementation-Title: Baritone
+Implementation-Version: 1.11.2-4-g9ebfe57f-dirty
+
