@@ -1,3 +1,88 @@
+# Baritone Noisium NeoForge - The Debugging Chronicles
+
+## What is this abomination?
+
+This repository represents the result of an extensive debugging session attempting to make Baritone work with Noisium optimizations on NeoForge 1.21.1. **Spoiler alert: It doesn't fully work, but we learned a lot.**
+
+## The Journey
+
+### What We Tried
+1. **Multiple mixin configuration attempts** - Tried to make `MixinClientPlayerEntityNoisium.java` compatible
+2. **Added regular NeoForge support** - Modified `gradle.properties` to build both Noisium and regular versions
+3. **Extensive mixin debugging** - Attempted various injection strategies and optional requirements
+4. **Official release testing** - Even official Baritone releases fail with the same mixin conflicts
+
+### What We Discovered
+
+#### The Core Issue
+Baritone's `MixinClientPlayerEntity` fails with this error on the target environment:
+```
+InvalidInjectionException: Redirector isAllowFlying(Lnet/minecraft/world/entity/player/Abilities;)Z 
+expected 1 invocation(s) but 0 succeeded
+```
+
+This happens with:
+- ✗ Custom Noisium builds
+- ✗ Custom regular NeoForge builds  
+- ✗ Official Baritone v1.11.1
+- ✗ Official Baritone v1.11.2
+
+#### The Environment
+- **Minecraft**: 1.21.1
+- **NeoForge**: 21.1.176
+- **Heavily modded server** with 100+ mods including Create, JourneyMap, KubeJS, etc.
+- **No Noisium actually installed** (the irony!)
+
+#### What Actually Works
+The Noisium-specific version we built **does compile successfully** and produces:
+- `baritone-standalone-noisium-neoforge-1.11.2-7-gdacdf6f5-dirty.jar`
+- Commands are accepted (e.g., `#goto`, `#mine`)
+- Path calculation works
+- **Movement execution fails** (the bot calculates but won't move)
+
+## Current State
+
+### Files Modified
+- `src/launch/java/baritone/launch/mixins/MixinClientPlayerEntityNoisium.java` - Simplified to avoid Noisium conflicts
+- `gradle.properties` - Added regular neoforge to available_loaders
+- `src/launch/resources/mixins.baritone.noisium.json` - Noisium-specific mixin config
+
+### Build Variants
+- `./gradlew :noisium-neoforge:build` - Builds the Noisium-compatible version
+- `./gradlew :neoforge:build` - Builds regular NeoForge version (also fails due to environment)
+
+## The Verdict
+
+**This is fundamentally a mod compatibility issue.** The target server environment has mixin conflicts that prevent Baritone from functioning properly, regardless of which version is used. The issue is not with our code, but with the complex mod interactions in the target environment.
+
+## Recommendations
+
+1. **For server admins**: Consider testing Baritone in a minimal environment to identify conflicting mods
+2. **For users**: Use this on simpler mod packs, or ask server admins about Baritone compatibility
+3. **For developers**: This serves as a good example of mixin debugging and cross-mod compatibility challenges
+
+## Build Instructions
+
+```bash
+# Build the Noisium version (our "working" abomination)
+./gradlew :noisium-neoforge:build
+
+# Build regular NeoForge version
+./gradlew :neoforge:build
+```
+
+## Credits
+
+This debugging session was a collaborative effort involving extensive mixin analysis, environment testing, and a lot of patience. While we didn't achieve full functionality, we gained valuable insights into mod compatibility and mixin injection challenges.
+
+**Status**: 🔶 Partially functional (calculates but doesn't move)  
+**Recommendation**: Use official Baritone on simpler mod packs  
+**Last Updated**: June 27, 2025
+
+---
+
+*"In the end, we didn't fix Baritone, but we sure learned a lot about mixins!"*
+
 # Baritone
 <p align="center">
   <a href="https://github.com/cabaletta/baritone/releases/"><img src="https://img.shields.io/github/downloads/cabaletta/baritone/total.svg" alt="GitHub All Releases"/></a>
