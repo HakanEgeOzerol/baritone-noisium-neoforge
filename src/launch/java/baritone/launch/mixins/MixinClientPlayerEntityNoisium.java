@@ -42,7 +42,11 @@ public class MixinClientPlayerEntityNoisium {
     // Use HEAD injection to avoid conflicts with Noisium's tick modifications
     @Inject(
             method = "tick",
-            at = @At("HEAD")
+            at = @At(
+                    value = "INVOKE",
+                    target = "net/minecraft/client/player/AbstractClientPlayer.tick()V",
+                    shift = At.Shift.AFTER
+            )
     )
     private void onPreUpdate(CallbackInfo ci) {
         IBaritone baritone = BaritoneAPI.getProvider().getBaritoneForPlayer((LocalPlayer) (Object) this);
