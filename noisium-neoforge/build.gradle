@@ -148,11 +148,11 @@ components.java {
 
 task proguard(type: ProguardTask) {
     proguardVersion "7.4.2"
-    compType "neoforge"
+    compType "noisium-neoforge"
 }
 
 task createDist(type: CreateDistTask, dependsOn: proguard) {
-    compType "neoforge"
+    compType "noisium-neoforge"
 }
 
 build.finalizedBy(createDist)
