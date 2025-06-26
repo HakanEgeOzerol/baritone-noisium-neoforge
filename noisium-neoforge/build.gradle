@@ -88,29 +88,7 @@ sourceSets {
     }
 }
 
-// Temporarily rename original mixin config for noisium compatibility
-task backupOriginalMixinConfig {
-    doLast {
-        def originalFile = file("${projectDir}/../src/launch/resources/mixins.baritone.json")
-        def backupFile = file("${projectDir}/../src/launch/resources/mixins.baritone.json.backup")
-        if (originalFile.exists() && !backupFile.exists()) {
-            originalFile.renameTo(backupFile)
-        }
-    }
-}
-
-task restoreOriginalMixinConfig {
-    doLast {
-        def originalFile = file("${projectDir}/../src/launch/resources/mixins.baritone.json")
-        def backupFile = file("${projectDir}/../src/launch/resources/mixins.baritone.json.backup")
-        if (backupFile.exists() && !originalFile.exists()) {
-            backupFile.renameTo(originalFile)
-        }
-    }
-}
-
-processResources.dependsOn backupOriginalMixinConfig
-remapJar.finalizedBy restoreOriginalMixinConfig
+// Note: We exclude the original mixin config via processResources exclude above
 
 shadowJar {
     configurations = [project.configurations.shadowCommon]
@@ -119,11 +97,6 @@ shadowJar {
     // Exclude the problematic mixin class for noisium compatibility
     exclude 'baritone/launch/mixins/MixinClientPlayerEntity.class'
     exclude 'mixins.baritone.json'  // Exclude original mixin config
-    
-    // Make sure our Noisium mixin is included
-    from(sourceSets.main.output) {
-        include 'baritone/launch/mixins/MixinClientPlayerEntityNoisium.class'
-    }
 }
 
 remapJar {
