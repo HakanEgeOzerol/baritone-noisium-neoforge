@@ -90,11 +90,8 @@ allprojects {
         version rootProject.minecraft_version
 
         mappings {
-            intermediary()
             mojmap()
             parchment("1.20.6", "2024.05.01")
-
-            devFallbackNamespace "official"
         }
     }
 
@@ -141,6 +138,8 @@ sourceSets {
         runtimeClasspath += schematica_api.output
     }
 }
+
+// Simplified configuration - let source sets inherit from main
 
 dependencies {
     testImplementation 'junit:junit:4.13.2'

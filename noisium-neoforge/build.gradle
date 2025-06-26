@@ -65,17 +65,59 @@ dependencies {
     shadowCommon "dev.babbaj:nether-pathfinder:${project.nether_pathfinder_version}"
 }
 
+// This approach doesn't work - removing it
+
 processResources {
     inputs.property "version", project.version
 
     filesMatching("META-INF/neoforge.mods.toml") {
         expand "version": project.version
     }
+    
+    // Exclude the original mixin config for noisium compatibility
+    exclude "mixins.baritone.json"
 }
+
+// Override source sets to exclude problematic mixin class
+sourceSets {
+    main {
+        java {
+            exclude 'baritone/launch/mixins/MixinClientPlayerEntity.java'
+        }
+    }
+}
+
+// Temporarily rename original mixin config for noisium compatibility
+task backupOriginalMixinConfig {
+    doLast {
+        def originalFile = file("${projectDir}/../src/launch/resources/mixins.baritone.json")
+        def backupFile = file("${projectDir}/../src/launch/resources/mixins.baritone.json.backup")
+        if (originalFile.exists() && !backupFile.exists()) {
+            originalFile.renameTo(backupFile)
+        }
+    }
+}
+
+task restoreOriginalMixinConfig {
+    doLast {
+        def originalFile = file("${projectDir}/../src/launch/resources/mixins.baritone.json")
+        def backupFile = file("${projectDir}/../src/launch/resources/mixins.baritone.json.backup")
+        if (backupFile.exists() && !originalFile.exists()) {
+            backupFile.renameTo(originalFile)
+        }
+    }
+}
+
+processResources.dependsOn backupOriginalMixinConfig
+remapJar.finalizedBy restoreOriginalMixinConfig
 
 shadowJar {
     configurations = [project.configurations.shadowCommon]
     archiveClassifier.set "dev-shadow"
+    
+    // Exclude the problematic mixin class for noisium compatibility
+    exclude 'baritone/launch/mixins/MixinClientPlayerEntity.class'
+    exclude 'mixins.baritone.json'  // Exclude original mixin config
 }
 
 remapJar {
@@ -90,7 +132,7 @@ jar {
     manifest {
         attributes(
                 'MixinConfigs': 'mixins.baritone.noisium.json',
-                "MixinConnector": "baritone.launch.BaritoneMixinConnector",
+                "MixinConnector": "baritone.launch.BaritoneNoisiumMixinConnector",
 
                 'Implementation-Title': 'Baritone',
                 'Implementation-Version': version,
