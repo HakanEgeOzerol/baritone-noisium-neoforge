@@ -83,6 +83,7 @@ sourceSets {
     main {
         java {
             exclude 'baritone/launch/mixins/MixinClientPlayerEntity.java'
+            // Keep all other files
         }
     }
 }
@@ -118,6 +119,11 @@ shadowJar {
     // Exclude the problematic mixin class for noisium compatibility
     exclude 'baritone/launch/mixins/MixinClientPlayerEntity.class'
     exclude 'mixins.baritone.json'  // Exclude original mixin config
+    
+    // Make sure our Noisium mixin is included
+    from(sourceSets.main.output) {
+        include 'baritone/launch/mixins/MixinClientPlayerEntityNoisium.class'
+    }
 }
 
 remapJar {
