@@ -655,12 +655,52 @@ public interface MovementHelper extends ActionCosts, Helper {
     }
 
     static void moveTowards(IPlayerContext ctx, MovementState state, BlockPos pos) {
-        state.setTarget(new MovementTarget(
-                RotationUtils.calcRotationFromVec3d(ctx.playerHead(),
-                        VecUtils.getBlockPosCenter(pos),
-                        ctx.playerRotations()).withPitch(ctx.playerRotations().getPitch()),
-                false
-        )).setInput(Input.MOVE_FORWARD, true);
+        Rotation targetRotation = RotationUtils.calcRotationFromVec3d(ctx.playerHead(),
+                VecUtils.getBlockPosCenter(pos),
+                ctx.playerRotations()).withPitch(ctx.playerRotations().getPitch());
+        
+        state.setTarget(new MovementTarget(targetRotation, false));
+        
+        // Calculate movement input combination based on angle difference
+        float currentYaw = ctx.playerRotations().getYaw();
+        float targetYaw = targetRotation.getYaw();
+        float angleDiff = ((targetYaw - currentYaw) % 360 + 360) % 360;
+        if (angleDiff > 180) angleDiff -= 360; // normalize to [-180, 180]
+        
+        // Use movement input combinations for better path following
+        if (Math.abs(angleDiff) <= 22.5) {
+            // Forward
+            state.setInput(Input.MOVE_FORWARD, true);
+        } else if (angleDiff > 22.5 && angleDiff <= 67.5) {
+            // Forward-right
+            state.setInput(Input.MOVE_FORWARD, true);
+            state.setInput(Input.MOVE_RIGHT, true);
+        } else if (angleDiff > 67.5 && angleDiff <= 112.5) {
+            // Right
+            state.setInput(Input.MOVE_RIGHT, true);
+        } else if (angleDiff > 112.5 && angleDiff <= 157.5) {
+            // Back-right
+            state.setInput(Input.MOVE_BACK, true);
+            state.setInput(Input.MOVE_RIGHT, true);
+        } else if (Math.abs(angleDiff) > 157.5) {
+            // Back
+            state.setInput(Input.MOVE_BACK, true);
+        } else if (angleDiff < -22.5 && angleDiff >= -67.5) {
+            // Forward-left
+            state.setInput(Input.MOVE_FORWARD, true);
+            state.setInput(Input.MOVE_LEFT, true);
+        } else if (angleDiff < -67.5 && angleDiff >= -112.5) {
+            // Left
+            state.setInput(Input.MOVE_LEFT, true);
+        } else if (angleDiff < -112.5 && angleDiff >= -157.5) {
+            // Back-left
+            state.setInput(Input.MOVE_BACK, true);
+            state.setInput(Input.MOVE_LEFT, true);
+        }
+        
+        System.out.println("[BARITONE DEBUG] moveTowards - currentYaw: " + currentYaw + 
+                         ", targetYaw: " + targetYaw + ", angleDiff: " + angleDiff +
+                         ", pos: " + pos);
     }
 
     /**
