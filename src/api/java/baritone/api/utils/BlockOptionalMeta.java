@@ -257,11 +257,26 @@ public final class BlockOptionalMeta {
         if (lv == BuiltInLootTables.EMPTY) {
             return Collections.emptyList();
         } else {
-            LootParams lv2 = params.withParameter(LootContextParams.BLOCK_STATE, state.defaultBlockState()).create(LootContextParamSets.BLOCK);
-            ServerLevelStub lv3 = (ServerLevelStub) lv2.getLevel();
-            LootTable lv4 = lv3.holder().getLootTable(lv);
-            return((ILootTable) lv4).invokeGetRandomItems(new LootContext.Builder(lv2).withOptionalRandomSeed(1).create(null));
+            try {
+                LootParams lv2 = params.withParameter(LootContextParams.BLOCK_STATE, state.defaultBlockState()).create(LootContextParamSets.BLOCK);
+                ServerLevelStub lv3 = (ServerLevelStub) lv2.getLevel();
+                ReloadableServerRegistries.Holder holder = lv3.holder();
+                if (holder == null) {
+                    // Server registry simulation failed, return reasonable default for common blocks
+                    return getDefaultDrops(state);
+                }
+                LootTable lv4 = holder.getLootTable(lv);
+                return((ILootTable) lv4).invokeGetRandomItems(new LootContext.Builder(lv2).withOptionalRandomSeed(1).create(null));
+            } catch (Exception e) {
+                // If anything fails, return reasonable default
+                return getDefaultDrops(state);
+            }
         }
+    }
+
+    private static List<ItemStack> getDefaultDrops(Block block) {
+        // Return reasonable defaults for common blocks when loot table simulation fails
+        return Collections.singletonList(new ItemStack(block.asItem(), 1));
     }
 
     public static class ServerLevelStub extends ServerLevel {
@@ -289,11 +304,21 @@ public final class BlockOptionalMeta {
 
         @Override
         public RegistryAccess registryAccess() {
-            return registryAccess.join();
+            try {
+                return registryAccess.join();
+            } catch (Exception e) {
+                // Fallback to client registry access if server simulation fails
+                return client.level.registryAccess();
+            }
         }
 
         public ReloadableServerRegistries.Holder holder() {
-            return new ReloadableServerRegistries.Holder(registryAccess().freeze());
+            try {
+                return new ReloadableServerRegistries.Holder(registryAccess().freeze());
+            } catch (Exception e) {
+                // Return null if server registry simulation fails - will be handled by calling code
+                return null;
+            }
         }
 
         public static Unsafe getUnsafe() {
@@ -307,23 +332,30 @@ public final class BlockOptionalMeta {
         }
 
         public static CompletableFuture<RegistryAccess> load() {
-            PackRepository packRepository = Minecraft.getInstance().getResourcePackRepository();
-            CloseableResourceManager closeableResourceManager = new MultiPackResourceManager(
-                PackType.SERVER_DATA,
-                List.of(packRepository.getPack(BuiltInPackSource.VANILLA_ID).open())
-            );
-            LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess = loadAndReplaceLayer(
-                closeableResourceManager, RegistryLayer.createRegistryAccess(), RegistryLayer.WORLDGEN, RegistryDataLoader.WORLDGEN_REGISTRIES
-            );
-            return ReloadableServerResources.loadResources(
-                closeableResourceManager,
-                layeredRegistryAccess,
-                FeatureFlags.VANILLA_SET,
-                Commands.CommandSelection.INTEGRATED,
-                2,
-                Runnable::run,
-                Minecraft.getInstance()
-            ).thenApply(reloadableServerResources -> reloadableServerResources.fullRegistries().get());
+            try {
+                PackRepository packRepository = Minecraft.getInstance().getResourcePackRepository();
+                CloseableResourceManager closeableResourceManager = new MultiPackResourceManager(
+                    PackType.SERVER_DATA,
+                    List.of(packRepository.getPack(BuiltInPackSource.VANILLA_ID).open())
+                );
+                LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess = loadAndReplaceLayer(
+                    closeableResourceManager, RegistryLayer.createRegistryAccess(), RegistryLayer.WORLDGEN, RegistryDataLoader.WORLDGEN_REGISTRIES
+                );
+                return ReloadableServerResources.loadResources(
+                    closeableResourceManager,
+                    layeredRegistryAccess,
+                    FeatureFlags.VANILLA_SET,
+                    Commands.CommandSelection.INTEGRATED,
+                    2,
+                    Runnable::run,
+                    Minecraft.getInstance()
+                ).thenApply(reloadableServerResources -> reloadableServerResources.fullRegistries().get());
+            } catch (Exception e) {
+                // KubeJS or other mods can interfere with server resource loading
+                // Fall back to a completed future with client registry access
+                System.err.println("[Baritone] Server resource loading failed (likely due to mod conflicts), using fallback: " + e.getMessage());
+                return CompletableFuture.completedFuture(Minecraft.getInstance().level.registryAccess());
+            }
         }
 
         private static LayeredRegistryAccess<RegistryLayer> loadAndReplaceLayer(

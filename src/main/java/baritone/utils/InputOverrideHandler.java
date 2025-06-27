@@ -93,8 +93,22 @@ public final class InputOverrideHandler extends Behavior implements IInputOverri
         blockBreakHelper.tick(isInputForcedDown(Input.CLICK_LEFT));
         blockPlaceHelper.tick(isInputForcedDown(Input.CLICK_RIGHT));
 
-        if (inControl()) {
+        boolean inControl = inControl();
+        if (baritone.getPathingBehavior().isPathing()) {
+            System.out.println("[BARITONE DEBUG] InputOverrideHandler.onTick - inControl: " + inControl + 
+                             ", isPathing: " + baritone.getPathingBehavior().isPathing() + 
+                             ", inputClass: " + ctx.player().input.getClass().getSimpleName());
+            
+            // Debug input states
+            System.out.println("[BARITONE DEBUG] Input states - FORWARD: " + isInputForcedDown(Input.MOVE_FORWARD) +
+                             ", BACK: " + isInputForcedDown(Input.MOVE_BACK) +
+                             ", LEFT: " + isInputForcedDown(Input.MOVE_LEFT) + 
+                             ", RIGHT: " + isInputForcedDown(Input.MOVE_RIGHT));
+        }
+
+        if (inControl) {
             if (ctx.player().input.getClass() != PlayerMovementInput.class) {
+                System.out.println("[BARITONE DEBUG] Replacing input with PlayerMovementInput");
                 ctx.player().input = new PlayerMovementInput(this);
             }
         } else {
