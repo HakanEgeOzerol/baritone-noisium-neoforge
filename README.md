@@ -1,10 +1,10 @@
 # Baritone Noisium NeoForge - The Epic Debugging Saga
 
-## The Breakthrough! 🎉
+## Partial Breakthrough! 🟡
 
-After days of debugging, **WE HAVE ACHIEVED MOVEMENT!** This repository documents an incredible journey from complete failure to partial success in making Baritone work with complex mod environments on NeoForge 1.21.1.
+After days of debugging, **WE HAVE ACHIEVED BASIC MOVEMENT!** This repository documents an incredible journey from complete failure to partial progress in making Baritone work with complex mod environments on NeoForge 1.21.1. However, actual pathfinding execution remains broken.
 
-## Current Status: MOVEMENT ACHIEVED! (With Caveats)
+## Current Status: MOVEMENT ACHIEVED BUT NETWORK BLOCKED! 🚧
 
 **✅ WORKING:**
 - Path calculation (✓)
@@ -13,12 +13,21 @@ After days of debugging, **WE HAVE ACHIEVED MOVEMENT!** This repository document
 - **PLAYER MOVEMENT** (✓) - *The player now moves!*
 
 **⚠️ PARTIALLY WORKING:**
-- Movement follows camera direction instead of calculated path
-- No mining capability yet
+- **Basic movement achieved** - Player can move forward with nuclear input forcing
+- **Path calculation works** - Baritone calculates paths successfully
+- **BUT**: Movement doesn't follow calculated paths (goes toward camera instead)
 
-**❌ NOT WORKING:**
-- Proper pathfinding execution
-- Block breaking/mining
+**❌ CURRENT BLOCKER:**
+- **Network registration limit exceeded** - Cannot connect to server
+- Error: `End size 612 is less than fixed size 613`
+- Prevents all testing until resolved
+
+**❌ CORE MOVEMENT ISSUES (Even if network was fixed):**
+- **PathExecutor objects never created** - Calculated paths don't become executable
+- **PathExecutor.onTick() never called** - No path execution happening
+- **All movement inputs stay `false`** - Nuclear option only forces forward movement
+- Movement goes toward camera direction, not calculated path
+- Block breaking/mining system still broken
 
 ## The Epic Journey
 
@@ -95,20 +104,25 @@ if (inControl && isPathing) {
 - `src/api/java/baritone/api/utils/BlockOptionalMeta.java` - KubeJS compatibility fix
 
 ### Latest Build
-- `baritone-standalone-noisium-neoforge-1.11.2-9-gfd47a507-dirty.jar`
-- **Status**: Movement works, path following needs fixes
+- `baritone-standalone-noisium-neoforge-1.11.2-11-g9db25b01-dirty.jar` (cleaned up version)
+- **Status**: Movement achieved, but blocked by network registration limit
 
 ## What's Next
 
-### Remaining Issues
-1. **Path Following**: Movement goes toward camera, not calculated path
-2. **Mining**: Block breaking system needs implementation
-3. **Precision**: Fine-tune movement accuracy
+### Critical Issues (Blocking deployment)
+1. **Network Registration Limit**: Fix connection error to enable testing
+2. **PathExecutor Creation**: Debug why calculated paths don't become executable
+3. **Path Following**: Make movement follow calculated paths, not camera direction
 
-### Technical TODOs  
-1. Fix movement direction calculation
-2. Implement mining redirects with nuclear approach
-3. Optimize input forcing performance
+### Secondary Issues (After core fixes)
+1. **Mining System**: Implement block breaking with compatible approach
+2. **Movement Precision**: Fine-tune path following accuracy
+3. **Performance**: Optimize nuclear input forcing system
+
+### Technical Reality Check  
+**Current "movement"** = Nuclear option forcing forward movement only  
+**Actual pathfinding** = Still completely broken (PathExecutor system non-functional)  
+**Real goal** = Proper path execution + movement that follows calculated routes
 
 ## Build Instructions
 
@@ -122,15 +136,95 @@ if (inControl && isPathing) {
 
 ## The Verdict
 
-**WE DID IT!** This represents a successful resolution of what appeared to be an impossible mod compatibility issue. Through systematic debugging, creative problem-solving, and the "nuclear option" approach, we achieved player movement in a complex 100+ mod environment.
+**PARTIAL BREAKTHROUGH!** This represents significant progress on what appeared to be an impossible mod compatibility issue. Through systematic debugging and the "nuclear option" approach, we achieved *basic player movement* in a complex 100+ mod environment. However, **actual pathfinding is still broken** - the movement doesn't follow calculated paths.
 
-**Status**: 🟢 **MOVEMENT ACHIEVED!** (Path following in progress)  
-**Method**: Nuclear input forcing + direct field manipulation  
+**Status**: 🟡 **BASIC MOVEMENT + DUAL BLOCKERS (NETWORK + PATHFINDING)**  
+**Method**: Nuclear input forcing (bypasses proper path following)  
+**Real Challenge**: PathExecutor system completely non-functional  
 **Last Updated**: December 19, 2024
 
 ---
 
 *"When conventional approaches fail, sometimes you need to go nuclear!"* 🚀
+
+## Today's Session: Network Registration Roadblock 🚧
+
+### The Issue
+After achieving movement, we hit a **new major roadblock**: Network registration size mismatch causing connection failures.
+
+```
+Connection Lost
+Internal Exception: java.lang.IllegalStateException: End size 612 is less than fixed size 613
+```
+
+### What We Discovered Today
+
+**✅ Good News:**
+- Successfully removed all debug logging from the code
+- Built a cleaner version: `baritone-standalone-noisium-neoforge-1.11.2-11-g9db25b01-dirty.jar`
+- All mods restored to the modpack (no more disabling mods approach)
+- Performance mods confirmed not to be the issue:
+  - `farsight-1.21-3.8.jar` ✓
+  - `modernfix-neoforge-5.23.1+mc1.21-1.21.1.jar` ✓ 
+  - `noisium-neoforge-2.3.0+mc1.21-1.21.1.jar` ✓
+
+**❌ Current Blocker:**
+- **Network registration limit exceeded**: The modpack + Baritone combination creates too many network channels (612+ when limit is 613)
+- This prevents connection to the server entirely
+- Cannot test movement improvements until this is resolved
+- Issue persists even with cleaner build (rules out debug logging as cause)
+
+### Theory: Dual Problem Investigation Needed
+
+**Network Registration Issue:**
+The error suggests our Baritone mod might be:
+1. Registering duplicate network channels 
+2. Creating too many network handlers
+3. Interfering with NeoForge's network registration process
+4. Conflicting with other mods' network registration
+
+**Core Path Execution Issue (Discovered in debug logs):**
+Even if network was fixed, movement still wouldn't work because:
+1. **PathExecutor creation fails** - Calculated paths never become PathExecutor objects
+2. **PathingBehavior.current always null** - No active path executor exists
+3. **No movement input setting** - PathExecutor.onTick() never called to set movement inputs
+4. **Nuclear option bypasses proper system** - Forces movement but ignores calculated paths
+
+### Next Steps for Resolution
+
+**Priority 1: Network Registration (Immediate blocker)**
+1. **Investigate network registration in Baritone code**
+   - Check for duplicate registrations
+   - Review network channel creation
+   - Compare with working versions
+2. **Network channel optimization**
+   - Reduce Baritone's network footprint
+   - Consolidate network handlers where possible
+3. **NeoForge compatibility review**
+   - Ensure proper NeoForge network registration patterns
+
+**Priority 2: Path Execution System (Core functionality)**
+1. **Debug PathExecutor creation process**
+   - Why calculated paths don't become PathExecutor objects
+   - Investigate PathingBehavior.current assignment logic
+2. **Fix path execution pipeline**
+   - Ensure PathExecutor.onTick() gets called
+   - Fix movement input system to follow calculated paths instead of camera direction
+3. **Replace nuclear option with proper solution**
+   - Make movement follow actual calculated paths
+   - Integrate with proper Baritone movement system
+
+### Files Affected This Session
+- **Cleaned up**: `src/main/java/baritone/behavior/PathingBehavior.java` (removed debug logging)
+- **Cleaned up**: `src/main/java/baritone/pathing/path/PathExecutor.java` (removed debug logging)
+- **Status**: All mods re-enabled in modpack (proper compatibility approach)
+
+### The Bigger Picture
+This represents a shift from input system issues to **networking/modpack compatibility** issues. While we solved the core movement problem, we now face infrastructure challenges that prevent testing and deployment.
+
+**Priority**: Network registration size limit resolution (blocks all testing)
+**Secondary**: Fix PathExecutor creation system (actual pathfinding still broken)
+**Goal**: Connect successfully + proper path following movement (not just camera-direction movement)
 
 ### The Legacy
 This debugging session demonstrates that seemingly impossible mod compatibility issues can be solved with:
